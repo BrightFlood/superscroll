@@ -8,7 +8,7 @@ const console = window.console || {};
 
 console.log = console.log || function(){}; // no console log, well - do nothing then...
 // make sure methods for all levels exist.
-for(i = 0; i<loglevels.length; i++) {
+for(let i = 0; i<loglevels.length; i++) {
 	var method = loglevels[i];
 	if (!console[method]) {
 		console[method] = console.log; // prefer .log over nothing
@@ -44,8 +44,12 @@ class _util {
 		which = which.charAt(0).toUpperCase() + which.substr(1).toLowerCase();
 		var dimension = (outer ? elem['offset' + which] || elem['outer' + which] : elem['client' + which] || elem['inner' + which]) || 0;
 		if (outer && includeMargin) {
-			var style = _getComputedStyle(elem);
-			dimension += which === 'Height' ?  floatval(style.marginTop) + floatval(style.marginBottom) : floatval(style.marginLeft) + floatval(style.marginRight);
+			var style = _util._getComputedStyle(elem);
+			dimension += which === 'Height' 
+				?  	_util.floatval(style.marginTop)
+					 + _util.floatval(style.marginBottom) 
+				: 	_util.floatval(style.marginLeft) 
+					+ _util.floatval(style.marginRight);
 		}
 		return dimension;
 	};
@@ -65,7 +69,7 @@ class _util {
 	// extend obj – same as jQuery.extend({}, objA, objB)
 	static extend(obj) {
 		obj = obj || {};
-		for (i = 1; i < arguments.length; i++) {
+		for (let i = 1; i < arguments.length; i++) {
 			if (!arguments[i]) {
 				continue;
 			}
@@ -158,22 +162,22 @@ class _util {
 	// if options is object -> set new css values
 	static css(elem, options) {
 		if (_type.String(options)) {
-			return _getComputedStyle(elem)[_camelCase(options)];
+			return _util._getComputedStyle(elem)[_util._camelCase(options)];
 		} else if (_type.Array(options)) {
 			var
 				obj = {},
-				style = _getComputedStyle(elem);
+				style = _util._getComputedStyle(elem);
 			options.forEach(function(option, key) {
-				obj[option] = style[_camelCase(option)];
+				obj[option] = style[_util._camelCase(option)];
 			});
 			return obj;
 		} else {
 			for (var option in options) {
 				var val = options[option];
-				if (val == parseFloat(val)) { // assume pixel for seemingly numerical values
+				if (val === parseFloat(val)) { // assume pixel for seemingly numerical values
 					val += 'px';
 				}
-				elem.style[_camelCase(option)] = val;
+				elem.style[_util._camelCase(option)] = val;
 			}
 		}
 	}
@@ -213,7 +217,7 @@ class _type {
 		);
 	};
 }
-Util._type = _type;
+_util._type = _type;
 
 /**
  * ------------------------------
@@ -251,11 +255,11 @@ class _get {
 	};
 	// get element height
 	static width(elem, outer, includeMargin) {
-		return _dimension('width', elem, outer, includeMargin);
+		return _util._dimension('width', elem, outer, includeMargin);
 	};
 	// get element width
 	static height(elem, outer, includeMargin) {
-		return _dimension('height', elem, outer, includeMargin);
+		return _util._dimension('height', elem, outer, includeMargin);
 	};
 
 	// get element position (optionally relative to viewport)
@@ -273,6 +277,6 @@ class _get {
 		return offset;
 	};
 }
-Util._get = _get;
+_util._get = _get;
 
-export default { Util };
+export default _util;

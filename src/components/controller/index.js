@@ -28,43 +28,10 @@ import _util from '../../util';
  *
  */
 
-export class Controller {
+export class Controller extends Component {
 	/*
 	 * ----------------------------------------------------------------
 	 * settings
-	 * ----------------------------------------------------------------
-	 */
-	NAMESPACE = 'ScrollMagic.Controller';
-	SCROLL_DIRECTION_FORWARD = 'FORWARD';
-	SCROLL_DIRECTION_REVERSE = 'REVERSE';
-	SCROLL_DIRECTION_PAUSED = 'PAUSED';
-	DEFAULT_OPTIONS = CONTROLLER_OPTIONS.defaults;
-
-	/*
-	 * ----------------------------------------------------------------
-	 * private vars
-	 * ----------------------------------------------------------------
-	 */
-	Controller = this;
-	_options = _util.extend({}, DEFAULT_OPTIONS, options);
-	// for scenes we have getters for each option, but for the controller we don't, so we need to make it available externally for plugins
-	/*
-		this._options = _options;
-	*/
-	_sceneObjects = [];
-	_updateScenesOnNextCycle = false;		// can be boolean (true => all scenes) or an array of scenes to be updated
-	_scrollPos = 0;
-	_scrollDirection = SCROLL_DIRECTION_PAUSED;
-	_isDocument = true;
-	_viewPortSize = 0;
-	_enabled = true;
-	_updateTimeout;
-	_refreshTimeout;
-
-
-	/*
-	 * ----------------------------------------------------------------
-	 * static functions
 	 * ----------------------------------------------------------------
 	 */
 
@@ -78,38 +45,40 @@ export class Controller {
 			refreshInterval: 100
 		}
 	};
+	static NAMESPACE = 'ScrollMagic.Controller';
+	static SCROLL_DIRECTION_FORWARD = 'FORWARD';
+	static SCROLL_DIRECTION_REVERSE = 'REVERSE';
+	static SCROLL_DIRECTION_PAUSED = 'PAUSED';
+	static DEFAULT_OPTIONS = Controller.CONTROLLER_OPTIONS.defaults;
 
-	/*
-	* method used to add an option to ScrollMagic Scenes.
-	*/
-	static addOption(name, defaultValue) {
-		CONTROLLER_OPTIONS.defaults[name] = defaultValue;
-	};
+	constructor(props) {
+		super(props);
 
-	// instance extension function for plugins
-	static extend(extension) {
-		var oldClass = this;
-		ScrollMagic.Controller = function () {
-			oldClass.apply(this, arguments);
-			this.$super = _util.extend({}, this); // copy parent state
-			return extension.apply(this, arguments) || this;
-		};
-		_util.extend(ScrollMagic.Controller, oldClass); // copy properties
-		ScrollMagic.Controller.prototype = oldClass.prototype; // copy prototype
-		ScrollMagic.Controller.prototype.constructor = ScrollMagic.Controller; // restore constructor
-	};
+		/*
+		 * ----------------------------------------------------------------
+		 * private vars
+		 * ----------------------------------------------------------------
+		 */
 
-
-	/*
-	 * ----------------------------------------------------------------
-	 * private functions
-	 * ----------------------------------------------------------------
-	 */
+		this._options = _util.extend({}, Controller.DEFAULT_OPTIONS, this.options);
+		// for scenes we have getters for each option, but for the controller we don't, so we need to make it available externally for plugins
+		/*
+			this._options = _options;
+		*/
+		this._sceneObjects = [];
+		this._updateScenesOnNextCycle = false;		// can be boolean (true => all scenes) or an array of scenes to be updated
+		this._scrollPos = 0;
+		this._scrollDirection = Controller.SCROLL_DIRECTION_PAUSED;
+		this._isDocument = true;
+		this._viewPortSize = 0;
+		this._enabled = true;
+		this._updateTimeout = null;
+		this._refreshTimeout = null;
+	}
 
 	/**
 	 * Internal constructor function of the ScrollMagic Controller
 	 * @private
-	*/
 	construct() {
 		for (var key in _options) {
 			if (!DEFAULT_OPTIONS.hasOwnProperty(key)) {
@@ -140,15 +109,103 @@ export class Controller {
 
 		log(3, "added new " + NAMESPACE + " controller (v" + ScrollMagic.version + ")");
 	};
+	*/
+	
+
+	/*
+	 * ----------------------------------------------------------------
+	 * static functions
+	 * ----------------------------------------------------------------
+	 */
+
+	/*
+	* method used to add an option to ScrollMagic Scenes.
+	*/
+	static addOption(name, defaultValue) {
+		Controller.CONTROLLER_OPTIONS.defaults[name] = defaultValue;
+	};
+
+	// instance extension function for plugins
+	/*
+	static extend(extension) {
+		var oldClass = this;
+		ScrollMagic.Controller = function () {
+			oldClass.apply(this, arguments);
+			this.$super = _util.extend({}, this); // copy parent state
+			return extension.apply(this, arguments) || this;
+		};
+		_util.extend(ScrollMagic.Controller, oldClass); // copy properties
+		ScrollMagic.Controller.prototype = oldClass.prototype; // copy prototype
+		ScrollMagic.Controller.prototype.constructor = ScrollMagic.Controller; // restore constructor
+	};
+	*/
+
+	/*
+	 * ----------------------------------------------------------------
+	 * private functions
+	 * ----------------------------------------------------------------
+	 */
 
 	/**
 	* Schedule the next execution of the refresh function
 	* @private
 	*/
+
 	scheduleRefresh() {
-		if (_options.refreshInterval > 0) {
-			_refreshTimeout = window.setTimeout(refresh, _options.refreshInterval);
+		if (this._options.refreshInterval > 0) {
+			this._refreshTimeout = window.setTimeout(this.refresh.bind(this), this._options.refreshInterval);
 		}
+	};
+
+	/**
+	* Handles Container changes
+	* @private
+	*/
+	onChange(e) {
+		const {
+			SCROLL_DIRECTION_PAUSED
+		} = Controller;
+
+		const {
+			log,
+			_viewPortSize,
+			getViewportSize,
+			_scrollDirection,
+			_updateScenesOnNextCycle,
+			debounceUpdate
+		} = this;
+
+		log(3, "event fired causing an update:", e.type);
+		if (e.type == "resize") {
+			// resize
+			_viewPortSize = getViewportSize();
+			_scrollDirection = SCROLL_DIRECTION_PAUSED;
+		}
+		// schedule update
+		if (_updateScenesOnNextCycle !== true) {
+			_updateScenesOnNextCycle = true;
+			debounceUpdate();
+		}
+	};
+
+	refresh() {
+		if (!this._isDocument) {
+			// simulate resize event. Only works for viewport relevant param (performance)
+			if (this._viewPortSize != this.getViewportSize()) {
+				var resizeEvent;
+				try {
+					resizeEvent = new Event('resize', {bubbles: false, cancelable: false});
+				} catch (e) { // stupid IE
+					resizeEvent = document.createEvent("Event");
+					resizeEvent.initEvent("resize", false, false);
+				}
+				this._options.container.dispatchEvent(resizeEvent);
+			}
+		}
+		this._sceneObjects.forEach(function (scene, index) {// refresh all scenes
+			scene.refresh();
+		});
+		this.scheduleRefresh();
 	};
 
 	/**
@@ -156,6 +213,7 @@ export class Controller {
 	* @private
 	*/
 	getScrollPos() {
+		const {_options} = this;
 		return _options.vertical ? _util.get.scrollTop(_options.container) : _util.get.scrollLeft(_options.container);
 	};
 
@@ -164,6 +222,7 @@ export class Controller {
 	* @private
 	*/
 	getViewportSize() {
+		const {_options} = this;
 		return _options.vertical ? _util.get.height(_options.container) : _util.get.width(_options.container);
 	};
 
@@ -173,6 +232,7 @@ export class Controller {
 	* @private
 	*/
 	setScrollPos(pos) {
+		const {_options, _isDocument} = this;
 		if (_options.vertical) {
 			if (_isDocument) {
 				window.scrollTo(_util.get.scrollLeft(), pos);
@@ -193,6 +253,21 @@ export class Controller {
 	* @private
 	*/
 	updateScenes() {
+		const {
+			SCROLL_DIRECTION_FORWARD,
+			SCROLL_DIRECTION_REVERSE
+		} = Controller;
+
+		const {
+			log,
+			_options,
+			_enabled,
+			_updateScenesOnNextCycle,
+			_scrollPos,
+			_sceneObjects,
+			_scrollDirection,
+		} = this;
+
 		if (_enabled && _updateScenesOnNextCycle) {
 			// determine scenes to update
 			var scenesToUpdate = _util.type.Array(_updateScenesOnNextCycle) ? _updateScenesOnNextCycle : _sceneObjects.slice(0);
@@ -227,46 +302,9 @@ export class Controller {
 	* @private
 	*/
 	debounceUpdate() {
-		_updateTimeout = _util.rAF(updateScenes);
+		this._updateTimeout = _util.rAF(this.updateScenes);
 	};
 	
-	/**
-	* Handles Container changes
-	* @private
-	*/
-	onChange(e) {
-		log(3, "event fired causing an update:", e.type);
-		if (e.type == "resize") {
-			// resize
-			_viewPortSize = getViewportSize();
-			_scrollDirection = SCROLL_DIRECTION_PAUSED;
-		}
-		// schedule update
-		if (_updateScenesOnNextCycle !== true) {
-			_updateScenesOnNextCycle = true;
-			debounceUpdate();
-		}
-	};
-
-	refresh() {
-		if (!_isDocument) {
-			// simulate resize event. Only works for viewport relevant param (performance)
-			if (_viewPortSize != getViewportSize()) {
-				var resizeEvent;
-				try {
-					resizeEvent = new Event('resize', {bubbles: false, cancelable: false});
-				} catch (e) { // stupid IE
-					resizeEvent = document.createEvent("Event");
-					resizeEvent.initEvent("resize", false, false);
-				}
-				_options.container.dispatchEvent(resizeEvent);
-			}
-		}
-		_sceneObjects.forEach(function (scene, index) {// refresh all scenes
-			scene.refresh();
-		});
-		scheduleRefresh();
-	};
 
 	// (BUILD) - REMOVE IN MINIFY - START
 	/**
@@ -276,13 +314,23 @@ export class Controller {
 	 *
 	 * @param {number} loglevel - The loglevel required to initiate output for the message.
 	 * @param {...mixed} output - One or more variables that should be passed to the console.
+	 * 
 	 */
 	log(loglevel, output) {
+		const {
+			NAMESPACE
+		} = Controller;
+
+		const {
+			_options
+		} = this;
+
 		if (_options.loglevel >= loglevel) {
 			Array.prototype.splice.call(arguments, 1, 0, "(" + NAMESPACE + ") ->");
 			_util.log.apply(window, arguments);
 		}
 	};
+
 	// (BUILD) - REMOVE IN MINIFY - END
 	
 	/**
@@ -311,83 +359,6 @@ export class Controller {
 	 */
 
 	/**
-	 * Add one ore more scene(s) to the controller.  
-	 * This is the equivalent to `Scene.addTo(controller)`.
-	 * @public
-	 * @example
-	 * // with a previously defined scene
-	 * controller.addScene(scene);
-	 *
- 	 * // with a newly created scene.
-	 * controller.addScene(new ScrollMagic.Scene({duration : 0}));
-	 *
- 	 * // adding multiple scenes
-	 * controller.addScene([scene, scene2, new ScrollMagic.Scene({duration : 0})]);
-	 *
-	 * @param {(ScrollMagic.Scene|array)} newScene - ScrollMagic Scene or Array of Scenes to be added to the controller.
-	 * @return {Controller} Parent object for chaining.
-	 */
-	addScene(newScene) {
-		if (_util.type.Array(newScene)) {
-			newScene.forEach(function (scene, index) {
-				Controller.addScene(scene);
-			});
-		} else if (newScene instanceof ScrollMagic.Scene) {
-			if (newScene.controller() !== Controller) {
-				newScene.addTo(Controller);
-			} else if (_sceneObjects.indexOf(newScene) < 0){
-				// new scene
-				_sceneObjects.push(newScene); // add to array
-				_sceneObjects = sortScenes(_sceneObjects); // sort
-				newScene.on("shift.controller_sort", function() { // resort whenever scene moves
-					_sceneObjects = sortScenes(_sceneObjects);
-				});
-				// insert Global defaults.
-				for (var key in _options.globalSceneOptions) {
-					if (newScene[key]) {
-						newScene[key].call(newScene, _options.globalSceneOptions[key]);
-					}
-				}
-				log(3, "adding Scene (now " + _sceneObjects.length + " total)");
-			}
-		} else {
-			log(1, "ERROR: invalid argument supplied for '.addScene()'");
-		}
-		return Controller;
-	};
-
-	/**
-	 * Remove one ore more scene(s) from the controller.  
-	 * This is the equivalent to `Scene.remove()`.
-	 * @public
-	 * @example
-	 * // remove a scene from the controller
-	 * controller.removeScene(scene);
-	 *
-	 * // remove multiple scenes from the controller
-	 * controller.removeScene([scene, scene2, scene3]);
-	 *
-	 * @param {(ScrollMagic.Scene|array)} Scene - ScrollMagic Scene or Array of Scenes to be removed from the controller.
-	 * @returns {Controller} Parent object for chaining.
-	 */
-	removeScene(Scene) {
-		if (_util.type.Array(Scene)) {
-			Scene.forEach(function (scene, index) {
-				Controller.removeScene(scene);
-			});
-		} else {
-			var index = _sceneObjects.indexOf(Scene);
-			if (index > -1) {
-				Scene.off("shift.controller_sort");
-				_sceneObjects.splice(index, 1);
-				log(3, "removing Scene (now " + _sceneObjects.length + " left)");
-				Scene.remove();
-			}
-		}
-		return Controller;
-	};
-
-	/**
 	 * Update one ore more scene(s) according to the scroll position of the container.  
 	 * This is the equivalent to `Scene.update()`.  
 	 * The update method calculates the scene's start and end position (based on the trigger element, trigger hook, duration and offset) and checks it against the current scroll position of the container.  
@@ -408,7 +379,6 @@ export class Controller {
 	 * @param {boolean} [immediately=false] - If `true` the update will be instant, if `false` it will wait until next update cycle.  
 	 										  This is useful when changing multiple properties of the scene - this way it will only be updated once all new properties are set (updateScenes).
 	 * @return {Controller} Parent object for chaining.
-	 */
 	updateScene(Scene, immediately) {
 		if (_util.type.Array(Scene)) {
 			Scene.forEach(function (scene, index) {
@@ -429,6 +399,7 @@ export class Controller {
 		}
 		return Controller;
 	};
+	 */
 
 	/**
 	 * Updates the controller params and calls updateScene on every scene, that is attached to the controller.  
@@ -447,7 +418,6 @@ export class Controller {
 	 *
 	 * @param {boolean} [immediately=false] - If `true` the update will be instant, if `false` it will wait until next update cycle (better performance)
 	 * @return {Controller} Parent object for chaining.
-	 */
 	update(immediately) {
 		onChange({type: "resize"}); // will update size and set _updateScenesOnNextCycle to true
 		if (immediately) {
@@ -455,6 +425,7 @@ export class Controller {
 		}
 		return Controller;
 	};
+	 */
 
 	/**
 	 * Scroll to a numeric scroll offset, a DOM element, the start of a scene or provide an alternate method for scrolling.  
@@ -518,14 +489,26 @@ export class Controller {
 	 * @returns {Controller} Parent object for chaining.
 	 */
 	scrollTo(scrollTarget, additionalParameter) {
+		const {
+			PIN_SPACER_ATTRIBUTE
+		} = Controller;
+
+		const {
+			_options,
+			_isDocument,
+			setScrollPos,
+			log,
+		} = this;
+
 		if (_util.type.Number(scrollTarget)) { // excecute
 			setScrollPos.call(_options.container, scrollTarget, additionalParameter);
-		} else if (scrollTarget instanceof ScrollMagic.Scene) { // scroll to scene
+		/*} else if (scrollTarget instanceof ScrollMagic.Scene) { // scroll to scene
 			if (scrollTarget.controller() === Controller) { // check if the controller is associated with this scene
 				Controller.scrollTo(scrollTarget.scrollOffset(), additionalParameter);
 			} else {
 				log (2, "scrollTo(): The supplied scene does not belong to this controller. Scroll cancelled.", scrollTarget);
 			}
+		*/
 		} else if (_util.type.Function(scrollTarget)) { // assign new scroll function
 			setScrollPos = scrollTarget;
 		} else { // scroll to element
@@ -583,6 +566,10 @@ export class Controller {
 	 * @returns {(number|Controller)} Current scroll position or parent object for chaining.
 	 */
 	scrollPos(scrollPosMethod) {
+		const {
+			getScrollPos,
+			log
+		} = this;
 		if (!arguments.length) { // get
 			return getScrollPos.call(Controller);
 		} else { // set
@@ -614,8 +601,17 @@ export class Controller {
 	 							 ** `"container"` => the container element
 	 							 ** `"isDocument"` => true if container element is the document.
 	 * @returns {(mixed|object)} The requested info(s).
-	 */
+	*/
 	info(about) {
+		const {
+			log,
+			_options,
+			_isDocument,
+			_scrollPos,
+			_scrollDirection,
+			_viewPortSize
+		} = this;
+
 		var values = {
 			size: _viewPortSize, // contains height or width (in regard to orientation);
 			vertical: _options.vertical,
@@ -647,8 +643,12 @@ export class Controller {
 	 *
 	 * @param {number} [newLoglevel] - The new loglevel setting of the Controller. `[0-3]`
 	 * @returns {(number|Controller)} Current loglevel or parent object for chaining.
+	 * 
 	 */
 	loglevel(newLoglevel) {
+		const {
+			_options,
+		} = this;
 		// (BUILD) - REMOVE IN MINIFY - START
 		if (!arguments.length) { // get
 			return _options.loglevel;
@@ -673,7 +673,7 @@ export class Controller {
 	 *
 	 * @param {boolean} [newState] - The new enabled state of the controller `true` or `false`.
 	 * @returns {(boolean|Controller)} Current enabled state or parent object for chaining.
-	 */
+	 * 
 	enabled(newState) {
 		if (!arguments.length) { // get
 			return _enabled;
@@ -683,6 +683,7 @@ export class Controller {
 		}
 		return Controller;
 	};
+	 */
 	
 	/**
 	 * Destroy the Controller, all Scenes and everything.
@@ -699,6 +700,19 @@ export class Controller {
 	 * @returns {null} Null to unset handler variables.
 	 */
 	destroy(resetScenes) {
+		const {
+			NAMESPACE
+		} = Controller;
+
+		const {
+			log,
+			onChange,
+			_options,
+			_refreshTimeout,
+			_sceneObjects,
+			_updateTimeout,
+		} = this;
+		
 		window.clearTimeout(_refreshTimeout);
 		var i = _sceneObjects.length;
 		while (i--) {
@@ -713,16 +727,25 @@ export class Controller {
 
 	// maybe make the container a special child or just assume this is the container
 	// or just default to this being and give option of providing a special container
-	
-	
-	render({container, vertical, globalSceneOptions, loglevel, refreshInterval}) {
+
+	componentWillUnmount() {
+		//teardown any eventListeners
+	}
+
+	render() {
+		const {children, container, vertical, globalSceneOptions, loglevel, refreshInterval} = this.props;
+		
+		// identify scenes for mounting
+		// apply default props where needed
+		const scenes = React.Children.toArray(children)
+			.filter((child)=>true)
+			.map((child)=>child);
+		
 		return <div>
 			placeholder
+			{ scenes }
  	 	</div>
 	}
-	//addScene should be handled via children
-	//destroy should be handled internally when unmounted
-	//removeScene again should be handled by unmounting a child
 	//scrollTo ???
 	//update force update ???
 }
