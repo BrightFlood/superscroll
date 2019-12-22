@@ -1,4 +1,4 @@
-import {Type, Util, Get, PIN_SPACER_ATTRIBUTE} from '../../util';
+import {Type, Util, Get, PIN_SPACER_ATTRIBUTE} from '../util';
 import {Scene} from '../scene'
 
 /**

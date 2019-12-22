@@ -1,5 +1,5 @@
-import {Type, Util, Get, PIN_SPACER_ATTRIBUTE} from '../../util';
-import {Event} from '../../classes/event';
+import {Type, Util, Get, PIN_SPACER_ATTRIBUTE} from '../util';
+import {Event} from '../event';
 import {Controller} from '../controller';
 
 // store pagewide scene options
