@@ -33,7 +33,7 @@ export default class Director extends Component {
 	constructor(props){
 		super(props);
 		this.state = {
-			options: Util.extend({}, DEFAULT_OPTIONS, this.props.options)
+			options: Util.extend({}, DEFAULT_OPTIONS, props.options)
 		}
 		const protoState = {
 			scrollState: {},
