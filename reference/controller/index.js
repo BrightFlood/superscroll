@@ -136,7 +136,7 @@ export class Controller {
 	*/
 	scheduleRefresh() {
 		if (this._options.refreshInterval > 0) {
-			this._refreshTimeout = window.setTimeout(this.refresh, this._options.refreshInterval);
+			this._refreshTimeout = window.setTimeout(this.refresh.bind(this), this._options.refreshInterval);
 		}
 	};
 

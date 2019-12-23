@@ -1368,7 +1368,7 @@ export class Scene {
 	 * Helper used by the setter/getters for scene options
 	 * @private
 	 */
- 	changeOption = function(varname, newval) {
+ 	changeOption(varname, newval) {
 		var
 			changed = false,
 			oldval = this._options[varname];
