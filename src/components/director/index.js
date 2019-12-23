@@ -74,9 +74,6 @@ export default class Director extends Component {
 		// update container size immediately
 		protoState.viewPortSize = this.getViewportSize();
 		this.log(1, protoState.viewPortSize);
-		// set event handlers
-		this.state.options.container.addEventListener("resize", this.onChange.bind(this));
-		this.state.options.container.addEventListener("scroll", this.onChange.bind(this));
 
 		const refreshInterval = parseInt(this.state.options.refreshInterval, 10);
 		this.state.options.refreshInterval = Type.Number(refreshInterval) 
@@ -88,6 +85,10 @@ export default class Director extends Component {
 
 	componentDidMount() {
 		this.scheduleRefresh();
+
+		// set event handlers
+		this.state.options.container.addEventListener("resize", this.onChange.bind(this));
+		this.state.options.container.addEventListener("scroll", this.onChange.bind(this));
 	}
 
 	//OKAY
@@ -302,191 +303,8 @@ export default class Director extends Component {
 	 * @param {array} ScenesArray - an array of ScrollMagic Scenes that should be sorted
 	 * @return {array} The sorted array of Scenes.
 	 */
-	//OKAY
-	//TODO: REACT
-	//TODO: NAMING
-	sortScenes(ScenesArray) {
-		if (ScenesArray.length <= 1) {
-			return ScenesArray;
-		} else {
-			var scenes = ScenesArray.slice(0);
-			scenes.sort(function(a, b) {
-				return a.scrollOffset() > b.scrollOffset() ? 1 : -1;
-			});
-			return scenes;
-		}
-	};
-
-	/**
-	 * Add one ore more scene(s) to the controller.  
-	 * This is the equivalent to `Scene.addTo(controller)`.
-	 * @public
-	 * @example
-	 * // with a previously defined scene
-	 * controller.addScene(scene);
-	 *
- 	 * // with a newly created scene.
-	 * controller.addScene(new ScrollMagic.Scene({duration : 0}));
-	 *
- 	 * // adding multiple scenes
-	 * controller.addScene([scene, scene2, new ScrollMagic.Scene({duration : 0})]);
-	 *
-	 * @param {(ScrollMagic.Scene|array)} newScene - ScrollMagic Scene or Array of Scenes to be added to the controller.
-	 * @return {Controller} Parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//TODO: BROKEN, scene function may not be working
-	//NOTE: PROBABLY UNNECESSARY
-	addScene(newScene) {
-		if (Type.Array(newScene)) {
-			newScene.forEach(function (scene, index) {
-				this.addScene(scene);
-			});
-		} else if (newScene instanceof Scene) {
-			if (newScene.controller() !== this) {
-				newScene.addTo(this);
-			} else if (this.state.sceneObjects.indexOf(newScene) < 0){
-				// new scene
-				let sceneObjects = [...this.state.sceneObjects]
-				sceneObjects.push(newScene); // add to array
-				sceneObjects = this.sortScenes(sceneObjects); // sort
-				newScene.on("shift.controller_sort", ()=>{ // resort whenever scene moves
-					sceneObjects = this.sortScenes(sceneObjects);
-				});
-				// insert Global defaults.
-				// TODO: ES6
-				for (var key in this.state.options.globalSceneOptions) {
-					if (newScene[key]) {
-						newScene[key].call(newScene, this.state.options.globalSceneOptions[key]);
-					}
-				}
-				this.log(3, "adding Scene (now " + this._sceneObjects.length + " total)");
-			}
-		} else {
-			this.log(1, "ERROR: invalid argument supplied for '.addScene()'");
-		}
-		return this;
-	};
-
-	/**
-	 * Remove one ore more scene(s) from the controller.  
-	 * This is the equivalent to `Scene.remove()`.
-	 * @public
-	 * @example
-	 * // remove a scene from the controller
-	 * controller.removeScene(scene);
-	 *
-	 * // remove multiple scenes from the controller
-	 * controller.removeScene([scene, scene2, scene3]);
-	 *
-	 * @param {(ScrollMagic.Scene|array)} Scene - ScrollMagic Scene or Array of Scenes to be removed from the controller.
-	 * @returns {Controller} Parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//TODO: BROKEN, scene function may not be working
-	//NOTE: PROBABLY UNNECESSARY
-	removeScene(Scene) {
-		if (Type.Array(Scene)) {
-			Scene.forEach(function (scene, index) {
-				this.removeScene(scene);
-			});
-		} else {
-			let sceneObjects = [...this.state.sceneObjects];
-			var index = sceneObjects.indexOf(Scene);
-			if (index > -1) {
-				Scene.off("shift.controller_sort");
-				sceneObjects.splice(index, 1);
-				this.log(3, "removing Scene (now " + sceneObjects.length + " left)");
-				Scene.remove();
-			}
-		}
-		return this;
-	};
-
-	/**
-	 * Update one ore more scene(s) according to the scroll position of the container.  
-	 * This is the equivalent to `Scene.update()`.  
-	 * The update method calculates the scene's start and end position (based on the trigger element, trigger hook, duration and offset) and checks it against the current scroll position of the container.  
-	 * It then updates the current scene state accordingly (or does nothing, if the state is already correct) – Pins will be set to their correct position and tweens will be updated to their correct progress.  
-	 * _**Note:** This method gets called constantly whenever Controller detects a change. The only application for you is if you change something outside of the realm of ScrollMagic, like moving the trigger or changing tween parameters._
-	 * @public
-	 * @example
-	 * // update a specific scene on next cycle
- 	 * controller.updateScene(scene);
- 	 *
-	 * // update a specific scene immediately
-	 * controller.updateScene(scene, true);
- 	 *
-	 * // update multiple scenes scene on next cycle
-	 * controller.updateScene([scene1, scene2, scene3]);
-	 *
-	 * @param {ScrollMagic.Scene} Scene - ScrollMagic Scene or Array of Scenes that is/are supposed to be updated.
-	 * @param {boolean} [immediately=false] - If `true` the update will be instant, if `false` it will wait until next update cycle.  
-	 										  This is useful when changing multiple properties of the scene - this way it will only be updated once all new properties are set (updateScenes).
-	 * @return {Controller} Parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//TODO: BROKEN, scene function may not be working
-	//NOTE: PROBABLY UNNECESSARY
-	updateScene(Scene, immediately) {
-		if (Type.Array(Scene)) {
-			Scene.forEach(function (scene, index) {
-				this.updateScene(scene, immediately);
-			});
-		} else {
-			if (immediately) {
-				Scene.update(true);
-			} else if (this.state.updateScenesOnNextCycle !== true && Scene instanceof Scene) { // if _updateScenesOnNextCycle is true, all connected scenes are already scheduled for update
-				// prep array for next update cycle
-				let updateScenesOnNextCycle = this.state.updateScenesOnNextCycle || [];
-				updateScenesOnNextCycle = [...updateScenesOnNextCycle];
-				if (updateScenesOnNextCycle.indexOf(Scene) === -1) {
-					updateScenesOnNextCycle.push(Scene);	
-				}
-				updateScenesOnNextCycle = this.sortScenes(updateScenesOnNextCycle); // sort
-				this.setState(updateScenesOnNextCycle, ()=>{
-					this.debounceUpdate();
-				})
-			}
-		}
-		return this;
-	};
 	
-	/**
-	 * Updates the controller params and calls updateScene on every scene, that is attached to the controller.  
-	 * See `Controller.updateScene()` for more information about what this means.  
-	 * In most cases you will not need this function, as it is called constantly, whenever ScrollMagic detects a state change event, like resize or scroll.  
-	 * The only application for this method is when ScrollMagic fails to detect these events.  
-	 * One application is with some external scroll libraries (like iScroll) that move an internal container to a negative offset instead of actually scrolling. In this case the update on the controller needs to be called whenever the child container's position changes.
-	 * For this case there will also be the need to provide a custom function to calculate the correct scroll position. See `Controller.scrollPos()` for details.
-	 * @public
-	 * @example
-	 * // update the controller on next cycle (saves performance due to elimination of redundant updates)
-	 * controller.update();
-	 *
- 	 * // update the controller immediately
-	 * controller.update(true);
-	 *
-	 * @param {boolean} [immediately=false] - If `true` the update will be instant, if `false` it will wait until next update cycle (better performance)
-	 * @return {Controller} Parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//NOTE: PROBABLY UNNECESSARY
-	update(immediately) {
-		this.onChange({type: "resize"}); // will update size and set _updateScenesOnNextCycle to true
-		if (immediately) {
-			this.updateScenes();
-		}
-		return this;
-	};
+
 
 	/**
 	 * Scroll to a numeric scroll offset, a DOM element, the start of a scene or provide an alternate method for scrolling.  
@@ -676,7 +494,62 @@ export default class Director extends Component {
 			return;
 		}
 	};
+	
+	render(){
+		const {viewPortSize, scrollPos, scrollDirection, options:{refreshInterval}} = this.state;
+		return <DirectorContext.Provider value={{director: {viewPortSize, scrollPos, scrollDirection, refreshInterval}}}>
+			{this.props.children}
+		</DirectorContext.Provider>
+	}
+	
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
 
+	//OKAY
+	//TODO: REACT
+	//TODO: NAMING
+	sortScenes(ScenesArray) {
+		if (ScenesArray.length <= 1) {
+			return ScenesArray;
+		} else {
+			var scenes = ScenesArray.slice(0);
+			scenes.sort(function(a, b) {
+				return a.scrollOffset() > b.scrollOffset() ? 1 : -1;
+			});
+			return scenes;
+		}
+	};
 
 	/**
 	 * **Get** or **Set** the current enabled state of the controller.  
@@ -739,11 +612,177 @@ export default class Director extends Component {
 		this.log(3, "destroyed " + NAMESPACE + " (reset: " + (resetScenes ? "true" : "false") + ")");
 		return null;
 	};
+
+
+
+	/**
+	 * Add one ore more scene(s) to the controller.  
+	 * This is the equivalent to `Scene.addTo(controller)`.
+	 * @public
+	 * @example
+	 * // with a previously defined scene
+	 * controller.addScene(scene);
+	 *
+ 	 * // with a newly created scene.
+	 * controller.addScene(new ScrollMagic.Scene({duration : 0}));
+	 *
+ 	 * // adding multiple scenes
+	 * controller.addScene([scene, scene2, new ScrollMagic.Scene({duration : 0})]);
+	 *
+	 * @param {(ScrollMagic.Scene|array)} newScene - ScrollMagic Scene or Array of Scenes to be added to the controller.
+	 * @return {Controller} Parent object for chaining.
+	 */
+	//TODO: REACT
+	//TODO: NAMING, changing scene to stage potentially
+	//TODO: BROKEN, this isn't how it should work in react
+	//TODO: BROKEN, scene function may not be working
+	//NOTE: PROBABLY UNNECESSARY
+	addScene(newScene) {
+		if (Type.Array(newScene)) {
+			newScene.forEach(function (scene, index) {
+				this.addScene(scene);
+			});
+		} else if (newScene instanceof Scene) {
+			if (newScene.controller() !== this) {
+				newScene.addTo(this);
+			} else if (this.state.sceneObjects.indexOf(newScene) < 0){
+				// new scene
+				let sceneObjects = [...this.state.sceneObjects]
+				sceneObjects.push(newScene); // add to array
+				sceneObjects = this.sortScenes(sceneObjects); // sort
+				newScene.on("shift.controller_sort", ()=>{ // resort whenever scene moves
+					sceneObjects = this.sortScenes(sceneObjects);
+				});
+				// insert Global defaults.
+				// TODO: ES6
+				for (var key in this.state.options.globalSceneOptions) {
+					if (newScene[key]) {
+						newScene[key].call(newScene, this.state.options.globalSceneOptions[key]);
+					}
+				}
+				this.log(3, "adding Scene (now " + this._sceneObjects.length + " total)");
+			}
+		} else {
+			this.log(1, "ERROR: invalid argument supplied for '.addScene()'");
+		}
+		return this;
+	};
+
+	/**
+	 * Remove one ore more scene(s) from the controller.  
+	 * This is the equivalent to `Scene.remove()`.
+	 * @public
+	 * @example
+	 * // remove a scene from the controller
+	 * controller.removeScene(scene);
+	 *
+	 * // remove multiple scenes from the controller
+	 * controller.removeScene([scene, scene2, scene3]);
+	 *
+	 * @param {(ScrollMagic.Scene|array)} Scene - ScrollMagic Scene or Array of Scenes to be removed from the controller.
+	 * @returns {Controller} Parent object for chaining.
+	 */
+	//TODO: REACT
+	//TODO: NAMING, changing scene to stage potentially
+	//TODO: BROKEN, this isn't how it should work in react
+	//TODO: BROKEN, scene function may not be working
+	//NOTE: PROBABLY UNNECESSARY
+	removeScene(Scene) {
+		if (Type.Array(Scene)) {
+			Scene.forEach(function (scene, index) {
+				this.removeScene(scene);
+			});
+		} else {
+			let sceneObjects = [...this.state.sceneObjects];
+			var index = sceneObjects.indexOf(Scene);
+			if (index > -1) {
+				Scene.off("shift.controller_sort");
+				sceneObjects.splice(index, 1);
+				this.log(3, "removing Scene (now " + sceneObjects.length + " left)");
+				Scene.remove();
+			}
+		}
+		return this;
+	};
+
+	/**
+	 * Update one ore more scene(s) according to the scroll position of the container.  
+	 * This is the equivalent to `Scene.update()`.  
+	 * The update method calculates the scene's start and end position (based on the trigger element, trigger hook, duration and offset) and checks it against the current scroll position of the container.  
+	 * It then updates the current scene state accordingly (or does nothing, if the state is already correct) – Pins will be set to their correct position and tweens will be updated to their correct progress.  
+	 * _**Note:** This method gets called constantly whenever Controller detects a change. The only application for you is if you change something outside of the realm of ScrollMagic, like moving the trigger or changing tween parameters._
+	 * @public
+	 * @example
+	 * // update a specific scene on next cycle
+ 	 * controller.updateScene(scene);
+ 	 *
+	 * // update a specific scene immediately
+	 * controller.updateScene(scene, true);
+ 	 *
+	 * // update multiple scenes scene on next cycle
+	 * controller.updateScene([scene1, scene2, scene3]);
+	 *
+	 * @param {ScrollMagic.Scene} Scene - ScrollMagic Scene or Array of Scenes that is/are supposed to be updated.
+	 * @param {boolean} [immediately=false] - If `true` the update will be instant, if `false` it will wait until next update cycle.  
+	 										  This is useful when changing multiple properties of the scene - this way it will only be updated once all new properties are set (updateScenes).
+	 * @return {Controller} Parent object for chaining.
+	 */
+	//TODO: REACT
+	//TODO: NAMING, changing scene to stage potentially
+	//TODO: BROKEN, this isn't how it should work in react
+	//TODO: BROKEN, scene function may not be working
+	//NOTE: PROBABLY UNNECESSARY
+	updateScene(Scene, immediately) {
+		if (Type.Array(Scene)) {
+			Scene.forEach(function (scene, index) {
+				this.updateScene(scene, immediately);
+			});
+		} else {
+			if (immediately) {
+				Scene.update(true);
+			} else if (this.state.updateScenesOnNextCycle !== true && Scene instanceof Scene) { // if _updateScenesOnNextCycle is true, all connected scenes are already scheduled for update
+				// prep array for next update cycle
+				let updateScenesOnNextCycle = this.state.updateScenesOnNextCycle || [];
+				updateScenesOnNextCycle = [...updateScenesOnNextCycle];
+				if (updateScenesOnNextCycle.indexOf(Scene) === -1) {
+					updateScenesOnNextCycle.push(Scene);	
+				}
+				updateScenesOnNextCycle = this.sortScenes(updateScenesOnNextCycle); // sort
+				this.setState(updateScenesOnNextCycle, ()=>{
+					this.debounceUpdate();
+				})
+			}
+		}
+		return this;
+	};
 	
-	render(){
-		const {viewPortSize, scrollPos, scrollDirection, options:{refreshInterval}} = this.state;
-		return <DirectorContext.Provider value={{director: {viewPortSize, scrollPos, scrollDirection, refreshInterval}}}>
-			{this.props.children}
-		</DirectorContext.Provider>
-	}
+	/**
+	 * Updates the controller params and calls updateScene on every scene, that is attached to the controller.  
+	 * See `Controller.updateScene()` for more information about what this means.  
+	 * In most cases you will not need this function, as it is called constantly, whenever ScrollMagic detects a state change event, like resize or scroll.  
+	 * The only application for this method is when ScrollMagic fails to detect these events.  
+	 * One application is with some external scroll libraries (like iScroll) that move an internal container to a negative offset instead of actually scrolling. In this case the update on the controller needs to be called whenever the child container's position changes.
+	 * For this case there will also be the need to provide a custom function to calculate the correct scroll position. See `Controller.scrollPos()` for details.
+	 * @public
+	 * @example
+	 * // update the controller on next cycle (saves performance due to elimination of redundant updates)
+	 * controller.update();
+	 *
+ 	 * // update the controller immediately
+	 * controller.update(true);
+	 *
+	 * @param {boolean} [immediately=false] - If `true` the update will be instant, if `false` it will wait until next update cycle (better performance)
+	 * @return {Controller} Parent object for chaining.
+	 */
+	//TODO: REACT
+	//TODO: NAMING, changing scene to stage potentially
+	//TODO: BROKEN, this isn't how it should work in react
+	//NOTE: PROBABLY UNNECESSARY
+	update(immediately) {
+		this.onChange({type: "resize"}); // will update size and set _updateScenesOnNextCycle to true
+		if (immediately) {
+			this.updateScenes();
+		}
+		return this;
+	};
 }
