@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scene } from '../index';
+import Scene from './index';
 
 export default {
   title: 'Scene',
