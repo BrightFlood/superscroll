@@ -42,7 +42,7 @@ export default class Stage extends Component {
 							}
 							<h4>Stage</h4>
 							{
-								false && stage && Object.keys(stage).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
+								stage && Object.keys(stage).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
 	{key}: {JSON.stringify(stage[key])}
 								</p>))
 							}

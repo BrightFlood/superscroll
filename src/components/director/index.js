@@ -18,11 +18,6 @@ let CONTROLLER_OPTIONS = {
 	}
 };
 
-/*
-	* ----------------------------------------------------------------
-	* settings
-	* ----------------------------------------------------------------
-*/
 let
 	NAMESPACE = 'ScrollMagic.Controller',
 	SCROLL_DIRECTION_FORWARD = 'FORWARD',
@@ -32,63 +27,7 @@ let
 
 //Top-Level component which passes information about container and scrolling state to Stages, Scenes, and Actors
 export default class Director extends Component {
-	render(){
-		const {enabled, children} = this.props;
-		const {viewPortSize, scrollPos, scrollDirection, options:{refreshInterval}} = this.state;
-		
-		
-		const stages = React.Children.toArray(children).filter(child=> child.type === Stage);
-		const scenes = React.Children.toArray(children).filter(child=> child.type === Scene);
-		const actors = React.Children.toArray(children).filter(child=> child.type === Actor);
-		const assistants = React.Children.toArray(children).filter(child=> child.type === Assistant);
-
-		const directorContext = {
-			size: this.state.viewPortSize, // contains height or width (in regard to orientation);
-			vertical: this.state.options.vertical,
-			scrollPos: this.state.scrollPos,
-			scrollDirection: this.state.scrollDirection,
-			//container: this.state.options.container,
-			isDocument: this.state.isDocument
-		}
-
-		return <DirectorContext.Provider value={directorContext}>
-			{children}
-		</DirectorContext.Provider>
-	}
-
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-	//REACT REPLACEMENTS
-
+	
 	constructor(props){
 		super(props);
 		this.state = {
@@ -96,14 +35,15 @@ export default class Director extends Component {
 		}
 		const protoState = {
 			sceneObjects: [],
-			updateScenesOnNextCycle: false,
+			routineUpdateOnNextCycle: false,
 			scrollPos: 0,
 			scrollDirection: SCROLL_DIRECTION_PAUSED,
 			isDocument: true,
 			viewPortSize: 0,
 			enabled: true,
 			updateTimeout: null,
-			refreshTimeout: null
+			refreshTimeout: null,
+			directorContext: {}
 		}
 
 		for (var key in this.state.options) {
@@ -127,7 +67,7 @@ export default class Director extends Component {
 			this.state.options.container = window;
 		}
 		// update container size immediately
-		protoState.viewPortSize = this.getViewportSize();
+		protoState.viewPortSize = this.viewportSize;
 		this.log(1, protoState.viewPortSize);
 
 		const refreshInterval = parseInt(this.state.options.refreshInterval, 10);
@@ -138,8 +78,24 @@ export default class Director extends Component {
 		this.state = {...this.state, ...protoState};
 	}
 
+	render(){
+		const {disabled, children} = this.props;
+		const {directorContext} = this.state;
+
+		const stages = React.Children.toArray(children).filter(child=> child.type === Stage);
+		const scenes = React.Children.toArray(children).filter(child=> child.type === Scene);
+		const actors = React.Children.toArray(children).filter(child=> child.type === Actor);
+		const assistants = React.Children.toArray(children).filter(child=> child.type === Assistant);
+
+		return <DirectorContext.Provider value={directorContext}>
+			{children}
+		</DirectorContext.Provider>
+	}
+
 	componentDidMount() {
 		this.scheduleRefresh();
+		//intitialize state and context
+		this.setState(this.routineStateChanges());
 
 		// set event handlers
 		this.state.options.container.addEventListener("resize", this.onChange.bind(this));
@@ -153,6 +109,10 @@ export default class Director extends Component {
 		this.log(1, `${scenes.length} scenes in director`)
 		const actors = React.Children.toArray(children).filter(child=> child.type === Actor);
 		this.log(1, `${actors.length} actors in director`)
+	}
+
+	componentDidUpdate(){
+		//TODO: REACT, if disabled changes, make sure to force updates
 	}
 
 	componentWillUnmount() {
@@ -180,49 +140,6 @@ export default class Director extends Component {
 		}
 	};
 
-	/**
-	 * **Get** the current scrollPosition or **Set** a new method to calculate it.  
-	 * -> **GET**:
-	 * When used as a getter this function will return the current scroll position.  
-	 * To get a cached value use Controller.info("scrollPos"), which will be updated in the update cycle.  
-	 * For vertical controllers it will return the top scroll offset and for horizontal applications it will return the left offset.
-	 *
-	 * -> **SET**:
-	 * When used as a setter this method prodes a way to permanently overwrite the controller's scroll position calculation.  
-	 * A typical usecase is when the scroll position is not reflected by the containers scrollTop or scrollLeft values, but for example by the inner offset of a child container.  
-	 * Moving a child container inside a parent is a commonly used method for several scrolling frameworks, including iScroll.  
-	 * By providing an alternate calculation function you can make sure ScrollMagic receives the correct scroll position.  
-	 * Please also bear in mind that your function should return y values for vertical scrolls an x for horizontals.
-	 *
-	 * To change the current scroll position please use `Controller.scrollTo()`.
-	 * @public
-	 *
-	 * @example
-	 * // get the current scroll Position
-	 * var scrollPos = controller.scrollPos();
-	 *
- 	 * // set a new scroll position calculation method
-	 * controller.scrollPos(function () {
-	 *	return this.info("vertical") ? -mychildcontainer.y : -mychildcontainer.x
-	 * });
-	 *
-	 * @param {function} [scrollPosMethod] - The function to be used for the scroll position calculation of the container.
-	 * @returns {(number|Controller)} Current scroll position or parent object for chaining.
-	 */
-	scrollPos(scrollPosMethod) {
-		if (!arguments.length) { // get
-			return this.getScrollPos.call(this);
-		} else { // set
-			//TODO: REACT, ES6
-			if (Type.Function(scrollPosMethod)) {
-				this.getScrollPos = scrollPosMethod;
-			} else {
-				this.log(2, "Provided value for method 'scrollPos' is not a function. To change the current scroll position use 'scrollTo()'.");
-			}
-		}
-		return this;
-	};
-
 	log(loglevel, output) {
 		if (this.state.options.loglevel >= loglevel) {
 			Array.prototype.splice.call(arguments, 1, 0, "(" + NAMESPACE + ") ->");
@@ -230,20 +147,6 @@ export default class Director extends Component {
 		}
 	};
 	
-	/**
-	 * **Get** or **Set** the current loglevel option value.
-	 * @public
-	 *
-	 * @example
-	 * // get the current value
-	 * var loglevel = controller.loglevel();
-	 *
- 	 * // set a new value
-	 * controller.loglevel(3);
-	 *
-	 * @param {number} [newLoglevel] - The new loglevel setting of the Controller. `[0-3]`
-	 * @returns {(number|Controller)} Current loglevel or parent object for chaining.
-	 */
 	loglevel(newLoglevel) {
 		// (BUILD) - REMOVE IN MINIFY - START
 		if (!arguments.length) { // get
@@ -258,42 +161,28 @@ export default class Director extends Component {
 		return this;
 	};
 	
-	/**
-	* Schedule the next execution of the refresh function
-	* @private
-	*/
-	scheduleRefresh() {
-		if (this.state.options.refreshInterval > 0) {
-			const refreshTimeout = window.setTimeout(this.refresh.bind(this), this.state.options.refreshInterval);
-			this.setState({refreshTimeout});
-		}
-	}
-
-	/**
-	* Default function to get scroll pos - overwriteable using `Controller.scrollPos(newFunction)`
-	* @private
-	*/
-	getScrollPos() {
-		return this.state.options.vertical ? Get.scrollTop(this.state.options.container) : Get.scrollLeft(this.state.options.container);
+	get scrollPos() {
+		const getScrollPos = this.props.getScrollPos && Type.Function(this.props.getScrollPos)
+			? this.props.getScrollPos 
+			: ()=>{
+				return this.state.options.vertical ? Get.scrollTop(this.state.options.container) : Get.scrollLeft(this.state.options.container);
+			}
+		return getScrollPos();
 	};
 
 	/**
 		* Returns the current viewport Size (width vor horizontal, height for vertical)
 		* @private
 	*/
-	getViewportSize() {
+	get viewportSize() {
 		return this.state.options.vertical ? Get.height(this.state.options.container) : Get.width(this.state.options.container);
 	};
 
-	/**
-	* Handles Container changes
-	* @private
-	*/
 	onChange(e) {
 		this.log(3, "event fired causing an update:", e.type);
 		if (e.type === "resize") {
 			// resize
-			const viewPortSize = this.getViewportSize();
+			const viewPortSize = this.viewportSize;
 			const scrollDirection = SCROLL_DIRECTION_PAUSED;
 			this.setState({
 				viewPortSize,
@@ -302,14 +191,132 @@ export default class Director extends Component {
 		}
 		// schedule update
 		//TODO: REACT
-		if (this.state.updateScenesOnNextCycle !== true) {
-			const updateScenesOnNextCycle = true;
+		if (this.state.routineUpdateOnNextCycle !== true) {
+			const routineUpdateOnNextCycle = true;
 			this.setState({
-				updateScenesOnNextCycle
+				routineUpdateOnNextCycle
 			})
 			this.debounceUpdate();
 		}
 	};
+
+	scheduleRefresh() {
+		if (this.state.options.refreshInterval > 0) {
+			const refreshTimeout = window.setTimeout(this.refresh.bind(this), this.state.options.refreshInterval);
+			this.setState({refreshTimeout});
+		}
+	}
+
+	refresh() {
+		//this.log(1, "Refreshing")
+		//TODO: INVESTIGATE
+		if (!this.state.isDocument) {
+			// simulate resize event. Only works for viewport relevant param (performance)
+			const viewPortSize =	this.getViewportSize();
+			if (this.state.viewPortSize !== viewPortSize) {
+				var resizeEvent;
+				try {
+					resizeEvent = new Event('resize', {bubbles: false, cancelable: false});
+				} catch (e) { // stupid IE
+					resizeEvent = window.document.createEvent("Event");
+					resizeEvent.initEvent("resize", false, false);
+				}
+				this.state.options.container.dispatchEvent(resizeEvent);
+			}
+		}
+		// TODO: make sure this is handled in STAGEs or SCENEs
+		this.state.sceneObjects.forEach(function (scene, index) {// refresh all scenes
+			scene.refresh();
+		});
+		this.scheduleRefresh();
+	}
+
+	debounceUpdate() {
+		//TODO: REACT
+		const updateTimeout = Util.rAF(this.handleScheduledUpdate.bind(this));
+		this.setState({updateTimeout});
+	};
+
+	routineStateChanges() {
+		const oldScrollPos = this.state.scrollPos;
+		// update scroll pos now instead of onChange, as it might have changed since scheduling (i.e. in-browser smooth scroll)
+		const scrollPos = this.scrollPos;
+		var deltaScroll = scrollPos - oldScrollPos;
+
+		let scrollDirection;
+		if (deltaScroll !== 0) { // scroll position changed?
+			scrollDirection = (deltaScroll > 0) 
+				? SCROLL_DIRECTION_FORWARD 
+				: SCROLL_DIRECTION_REVERSE;
+		}
+
+		const directorContext = {
+			lastUpdate: Date.now(),
+			size: this.state.viewPortSize, // contains height or width (in regard to orientation);
+			vertical: this.state.options.vertical,
+			scrollPos,
+			scrollDirection,
+			//container: this.state.options.container,
+			isDocument: this.state.isDocument
+		}
+
+		return {
+			scrollPos,
+			scrollDirection,
+			directorContext
+		}
+	}
+
+	//TODO: INVESTIGATE, make sure order of updates of children doesn't matter
+	handleScheduledUpdate() {
+		if (this.state.enabled && this.state.routineUpdateOnNextCycle) {
+			//reset update flag
+			const routineUpdateOnNextCycle = false;
+			
+			const stateChanges = this.routineStateChanges();
+
+			this.setState({
+				...stateChanges,
+				routineUpdateOnNextCycle,
+			})
+		}
+	}
+
+	
+
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
+	//REFACTOR BELOW
 
 	/**
 	* Default function to set scroll pos - overwriteable using `Controller.scrollTo(newFunction)`
@@ -335,74 +342,6 @@ export default class Director extends Component {
 			}
 		}
 	};
-
-	refresh() {
-		//this.log(1, "Refreshing")
-		//TODO: INVESTIGATE
-		if (!this.state.isDocument) {
-			// simulate resize event. Only works for viewport relevant param (performance)
-			const viewPortSize =	this.getViewportSize();
-			if (this.state.viewPortSize !== viewPortSize) {
-				var resizeEvent;
-				try {
-					resizeEvent = new Event('resize', {bubbles: false, cancelable: false});
-				} catch (e) { // stupid IE
-					resizeEvent = window.document.createEvent("Event");
-					resizeEvent.initEvent("resize", false, false);
-				}
-				this.state.options.container.dispatchEvent(resizeEvent);
-			}
-		}
-		// TODO: REACT
-		this.state.sceneObjects.forEach(function (scene, index) {// refresh all scenes
-			scene.refresh();
-		});
-		this.scheduleRefresh();
-	}
-
-	/**
-	* Initializes rAF callback
-	* @private
-	*/
-	debounceUpdate() {
-		//TODO: REACT
-		const updateTimeout = Util.rAF(this.updateScenes.bind(this));
-		this.setState({updateTimeout});
-	};
-
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
-	//REFACTOR BELOW
 
 	/**
 	 * Scroll to a numeric scroll offset, a DOM element, the start of a scene or provide an alternate method for scrolling.  
@@ -502,392 +441,6 @@ export default class Director extends Component {
 			} else {
 				this.log (2, "scrollTo(): The supplied argument is invalid. Scroll cancelled.", scrollTarget);
 			}
-		}
-		return this;
-	};
-
-	/**
-	 * **Get** all infos or one in particular about the controller.
-	 * @public
-	 * @example
-	 * // returns the current scroll position (number)
-	 * var scrollPos = controller.info("scrollPos");
-	 *
-	 * // returns all infos as an object
-	 * var infos = controller.info();
-	 *
-	 * @param {string} [about] - If passed only this info will be returned instead of an object containing all.  
-	 							 Valid options are:
-	 							 ** `"size"` => the current viewport size of the container
-	 							 ** `"vertical"` => true if vertical scrolling, otherwise false
-	 							 ** `"scrollPos"` => the current scroll position
-	 							 ** `"scrollDirection"` => the last known direction of the scroll
-	 							 ** `"container"` => the container element
-	 							 ** `"isDocument"` => true if container element is the document.
-	 * @returns {(mixed|object)} The requested info(s).
-	 */
-
-	/**
-	* Handle updates in cycles instead of on scroll (performance)
-	* @private
-	*/
-	// TODO: REACT, update directorContext on an interval
-	updateScenes() {
-		if (this.state.enabled && this.state.updateScenesOnNextCycle) {
-			let updateScenesOnNextCycle,
-				scrollPos,
-				scrollDirection;
-			// determine scenes to update
-			// TODO: REACT
-			const scenesToUpdate =	Type.Array(this.state.updateScenesOnNextCycle) ? this.state.updateScenesOnNextCycle : this.state.sceneObjects.slice(0);
-			// reset scenes
-			updateScenesOnNextCycle = false;
-			const oldScrollPos = this.state.scrollPos;
-			// update scroll pos now instead of onChange, as it might have changed since scheduling (i.e. in-browser smooth scroll)
-			scrollPos = this.scrollPos();
-			var deltaScroll = scrollPos - oldScrollPos;
-			if (deltaScroll !== 0) { // scroll position changed?
-				scrollDirection = (deltaScroll > 0) 
-					? SCROLL_DIRECTION_FORWARD 
-					: SCROLL_DIRECTION_REVERSE;
-			}
-
-			// reverse order of scenes if scrolling reverse
-			if (scrollDirection === SCROLL_DIRECTION_REVERSE) {
-				scenesToUpdate.reverse();
-			}
-			// update scenes
-			//TODO: REACT
-			scenesToUpdate.forEach(function (scene, index) {
-				this.log(3, "updating Scene " + (index + 1) + "/" + scenesToUpdate.length + " (" + this.state.sceneObjects.length + " total)");
-				scene.update(true);
-			});
-
-			this.setState({
-				updateScenesOnNextCycle,
-				scrollPos,
-				scrollDirection
-			})
-
-			// (BUILD) - REMOVE IN MINIFY - START
-			if (scenesToUpdate.length === 0 && this.state.options.loglevel >= 3) {
-				this.log(3, "updating 0 Scenes (nothing added to controller)");
-			}
-			// (BUILD) - REMOVE IN MINIFY - END
-		}
-	};
-
-	/**
-	 * Update one ore more scene(s) according to the scroll position of the container.  
-	 * This is the equivalent to `Scene.update()`.  
-	 * The update method calculates the scene's start and end position (based on the trigger element, trigger hook, duration and offset) and checks it against the current scroll position of the container.  
-	 * It then updates the current scene state accordingly (or does nothing, if the state is already correct) – Pins will be set to their correct position and tweens will be updated to their correct progress.  
-	 * _**Note:** This method gets called constantly whenever Controller detects a change. The only application for you is if you change something outside of the realm of ScrollMagic, like moving the trigger or changing tween parameters._
-	 * @public
-	 * @example
-	 * // update a specific scene on next cycle
- 	 * controller.updateScene(scene);
- 	 *
-	 * // update a specific scene immediately
-	 * controller.updateScene(scene, true);
- 	 *
-	 * // update multiple scenes scene on next cycle
-	 * controller.updateScene([scene1, scene2, scene3]);
-	 *
-	 * @param {ScrollMagic.Scene} Scene - ScrollMagic Scene or Array of Scenes that is/are supposed to be updated.
-	 * @param {boolean} [immediately=false] - If `true` the update will be instant, if `false` it will wait until next update cycle.  
-	 										  This is useful when changing multiple properties of the scene - this way it will only be updated once all new properties are set (updateScenes).
-	 * @return {Controller} Parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//TODO: BROKEN, scene function may not be working
-	//NOTE: PROBABLY UNNECESSARY
-	//TODO: will be handled by props and context
-	updateScene(Scene, immediately) {
-		if (Type.Array(Scene)) {
-			Scene.forEach(function (scene, index) {
-				this.updateScene(scene, immediately);
-			});
-		} else {
-			if (immediately) {
-				Scene.update(true);
-			} else if (this.state.updateScenesOnNextCycle !== true && Scene instanceof Scene) { // if _updateScenesOnNextCycle is true, all connected scenes are already scheduled for update
-				// prep array for next update cycle
-				let updateScenesOnNextCycle = this.state.updateScenesOnNextCycle || [];
-				updateScenesOnNextCycle = [...updateScenesOnNextCycle];
-				if (updateScenesOnNextCycle.indexOf(Scene) === -1) {
-					updateScenesOnNextCycle.push(Scene);	
-				}
-				updateScenesOnNextCycle = this.sortScenes(updateScenesOnNextCycle); // sort
-				this.setState(updateScenesOnNextCycle, ()=>{
-					this.debounceUpdate();
-				})
-			}
-		}
-		return this;
-	};
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-	//DONE REFACTOR
-
-	//TODO: REACT
-	//TODO: BROKEN, this isn't how it should work in react
-	//DONE
-	info(about) {
-		var values = {
-			size: this.state.viewPortSize, // contains height or width (in regard to orientation);
-			vertical: this.state.options.vertical,
-			scrollPos: this.state.scrollPos,
-			scrollDirection: this.state.scrollDirection,
-			container: this.state.options.container,
-			isDocument: this.state.isDocument
-		};
-		if (!arguments.length) { // get all as an object
-			return values;
-		} else if (values[about] !== undefined) {
-			return values[about];
-		} else {
-			this.log(1, "ERROR: option \"" + about + "\" is not available");
-			return;
-		}
-	};
-
-	/**
-	 * Sort scenes in ascending order of their start offset.
-	 * @private
-	 *
-	 * @param {array} ScenesArray - an array of ScrollMagic Scenes that should be sorted
-	 * @return {array} The sorted array of Scenes.
-	 */
-	//TODO: REACT
-	//TODO: NAMING
-	//DONE
-	sortScenes(ScenesArray) {
-		if (ScenesArray.length <= 1) {
-			return ScenesArray;
-		} else {
-			var scenes = ScenesArray.slice(0);
-			scenes.sort(function(a, b) {
-				return a.scrollOffset() > b.scrollOffset() ? 1 : -1;
-			});
-			return scenes;
-		}
-	};
-
-	/**
-	 * **Get** or **Set** the current enabled state of the controller.  
-	 * This can be used to disable all Scenes connected to the controller without destroying or removing them.
-	 * @public
-	 *
-	 * @example
-	 * // get the current value
-	 * var enabled = controller.enabled();
-	 *
- 	 * // disable the controller
-	 * controller.enabled(false);
-	 *
-	 * @param {boolean} [newState] - The new enabled state of the controller `true` or `false`.
-	 * @returns {(boolean|Controller)} Current enabled state or parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//TODO: BROKEN, scene function may not be working
-	//TODO: REACT, replace with a prop
-	//TODO: DONE HERE, should pass it down for disabling children
-	enabled(newState) {
-		if (!arguments.length) { // get
-			return this.state.enabled;
-		} else if (this.state.enabled !== newState) { // set
-			this.setState({enabled:!!newState});
-			this.updateScene(this.state.sceneObjects, true);
-		}
-		return this;
-	};
-	
-	/**
-	 * Destroy the Controller, all Scenes and everything.
-	 * @public
-	 *
-	 * @example
-	 * // without resetting the scenes
-	 * controller = controller.destroy();
-	 *
- 	 * // with scene reset
-	 * controller = controller.destroy(true);
-	 *
-	 * @param {boolean} [resetScenes=false] - If `true` the pins and tweens (if existent) of all scenes will be reset.
-	 * @returns {null} Null to unset handler variables.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//TODO: BROKEN, scene function may not be working
-	//DONE
-	destroy(resetScenes) {
-		window.clearTimeout(this.state.refreshTimeout);
-		var i = this.state.sceneObjects.length;
-		while (i--) {
-			this.state.sceneObjects[i].destroy(resetScenes);
-		}
-		this.state.options.container.removeEventListener("resize", this.onChange.bind(this));
-		this.state.options.container.removeEventListener("scroll", this.onChange.bind(this));
-		Util.cAF(this.state.updateTimeout);
-		this.log(3, "destroyed " + NAMESPACE + " (reset: " + (resetScenes ? "true" : "false") + ")");
-		return null;
-	};
-
-	/**
-	 * Add one ore more scene(s) to the controller.  
-	 * This is the equivalent to `Scene.addTo(controller)`.
-	 * @public
-	 * @example
-	 * // with a previously defined scene
-	 * controller.addScene(scene);
-	 *
- 	 * // with a newly created scene.
-	 * controller.addScene(new ScrollMagic.Scene({duration : 0}));
-	 *
- 	 * // adding multiple scenes
-	 * controller.addScene([scene, scene2, new ScrollMagic.Scene({duration : 0})]);
-	 *
-	 * @param {(ScrollMagic.Scene|array)} newScene - ScrollMagic Scene or Array of Scenes to be added to the controller.
-	 * @return {Controller} Parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//TODO: BROKEN, scene function may not be working
-	//NOTE: PROBABLY UNNECESSARY
-	//TODO: will be handled as children
-	//DONE
-	addScene(newScene) {
-		if (Type.Array(newScene)) {
-			newScene.forEach(function (scene, index) {
-				this.addScene(scene);
-			});
-		} else if (newScene instanceof Scene) {
-			if (newScene.controller() !== this) {
-				newScene.addTo(this);
-			} else if (this.state.sceneObjects.indexOf(newScene) < 0){
-				// new scene
-				let sceneObjects = [...this.state.sceneObjects]
-				sceneObjects.push(newScene); // add to array
-				sceneObjects = this.sortScenes(sceneObjects); // sort
-				newScene.on("shift.controller_sort", ()=>{ // resort whenever scene moves
-					sceneObjects = this.sortScenes(sceneObjects);
-				});
-				// insert Global defaults.
-				// TODO: ES6
-				for (var key in this.state.options.globalSceneOptions) {
-					if (newScene[key]) {
-						newScene[key].call(newScene, this.state.options.globalSceneOptions[key]);
-					}
-				}
-				this.log(3, "adding Scene (now " + this._sceneObjects.length + " total)");
-			}
-		} else {
-			this.log(1, "ERROR: invalid argument supplied for '.addScene()'");
-		}
-		return this;
-	};
-
-	/**
-	 * Remove one ore more scene(s) from the controller.  
-	 * This is the equivalent to `Scene.remove()`.
-	 * @public
-	 * @example
-	 * // remove a scene from the controller
-	 * controller.removeScene(scene);
-	 *
-	 * // remove multiple scenes from the controller
-	 * controller.removeScene([scene, scene2, scene3]);
-	 *
-	 * @param {(ScrollMagic.Scene|array)} Scene - ScrollMagic Scene or Array of Scenes to be removed from the controller.
-	 * @returns {Controller} Parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//TODO: BROKEN, scene function may not be working
-	//NOTE: PROBABLY UNNECESSARY
-	//TODO: will be handled as children
-	//DONE
-	removeScene(Scene) {
-		if (Type.Array(Scene)) {
-			Scene.forEach(function (scene, index) {
-				this.removeScene(scene);
-			});
-		} else {
-			let sceneObjects = [...this.state.sceneObjects];
-			var index = sceneObjects.indexOf(Scene);
-			if (index > -1) {
-				Scene.off("shift.controller_sort");
-				sceneObjects.splice(index, 1);
-				this.log(3, "removing Scene (now " + sceneObjects.length + " left)");
-				Scene.remove();
-			}
-		}
-		return this;
-	};
-	
-	/**
-	 * Updates the controller params and calls updateScene on every scene, that is attached to the controller.  
-	 * See `Controller.updateScene()` for more information about what this means.  
-	 * In most cases you will not need this function, as it is called constantly, whenever ScrollMagic detects a state change event, like resize or scroll.  
-	 * The only application for this method is when ScrollMagic fails to detect these events.  
-	 * One application is with some external scroll libraries (like iScroll) that move an internal container to a negative offset instead of actually scrolling. In this case the update on the controller needs to be called whenever the child container's position changes.
-	 * For this case there will also be the need to provide a custom function to calculate the correct scroll position. See `Controller.scrollPos()` for details.
-	 * @public
-	 * @example
-	 * // update the controller on next cycle (saves performance due to elimination of redundant updates)
-	 * controller.update();
-	 *
- 	 * // update the controller immediately
-	 * controller.update(true);
-	 *
-	 * @param {boolean} [immediately=false] - If `true` the update will be instant, if `false` it will wait until next update cycle (better performance)
-	 * @return {Controller} Parent object for chaining.
-	 */
-	//TODO: REACT
-	//TODO: NAMING, changing scene to stage potentially
-	//TODO: BROKEN, this isn't how it should work in react
-	//NOTE: PROBABLY UNNECESSARY
-	//TODO: will be handled by props and context
-	//DONE
-	update(immediately) {
-		this.onChange({type: "resize"}); // will update size and set _updateScenesOnNextCycle to true
-		if (immediately) {
-			this.updateScenes();
 		}
 		return this;
 	};

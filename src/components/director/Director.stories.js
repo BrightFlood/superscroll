@@ -5,13 +5,6 @@ import Actor from '../actor';
 import Scene from '../scene';
 import Assistant from '../assistant';
 
-/*Primary goals for this project:
-	1. Works with React Router
-		a. Will scroll to a route
-	2. Works with React Transition Groups
-	3. Ideally you can do all the same kinds of things as the examples on ScrollMagic's site
-		b. I'm not immediately concerned about plugins and non-React library compatibility
-*/
 
 export default {
   title: 'Director',
