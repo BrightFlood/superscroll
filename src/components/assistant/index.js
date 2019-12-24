@@ -34,12 +34,18 @@ export default class Stage extends Component {
 								backgroundColor: 'lightgray'
 							}}
 						>
-							<span>
-								{JSON.stringify(director, null, 4)}
-							</span>
-							<span>
-								{JSON.stringify(stage, null, 4)}
-							</span>
+							<h4 style={{padding: 0, margin: 0}}>Director</h4>
+							{
+								director && Object.keys(director).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
+	{key}: {JSON.stringify(director[key])}
+								</p>))
+							}
+							<h4>Stage</h4>
+							{
+								false && stage && Object.keys(stage).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
+	{key}: {JSON.stringify(stage[key])}
+								</p>))
+							}
 						</div>
 					)}			
 				</StageContext.Consumer>
