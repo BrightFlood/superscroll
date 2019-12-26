@@ -105,22 +105,6 @@ export class Util {
 	 * ------------------------------
 	 */
 
-	// extend obj – same as jQuery.extend({}, objA, objB)
-	static extend(obj) {
-		obj = obj || {};
-		for (i = 1; i < arguments.length; i++) {
-			if (!arguments[i]) {
-				continue;
-			}
-			for (var key in arguments[i]) {
-				if (arguments[i].hasOwnProperty(key)) {
-					obj[key] = arguments[i][key];
-				}
-			}
-		}
-		return obj;
-	};
-
 	// check if a css display type results in margin-collapse or not
 	static isMarginCollapseType(str) {
 		return ["block", "flex", "list-item", "table", "-webkit-box"].indexOf(str) > -1;

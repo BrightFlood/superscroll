@@ -1,147 +1,77 @@
 import React, {Component} from 'react';
-import {DirectorContext} from './context';
+import {DirectorContext, DirectorContextManager} from './context';
 import {Util,Get, Type,PIN_SPACER_ATTRIBUTE} from '../../classes/util';
-import {Event} from '../../classes/event'
+import EventEmitter from 'events';
 import Scene from '../scene';
 import Stage from '../stage';
 import Actor from '../actor';
 import Assistant from '../assistant';
+import PropTypes from 'prop-types';
 
-// store pagewide controller options
-let CONTROLLER_OPTIONS = {
-	defaults: {
-		container: window,
-		vertical: true,
-		globalSceneOptions: {},
-		loglevel: 2,
-		refreshInterval: 100
-	}
-};
+const NAMESPACE = 'ScrollMagic.Director';
 
-let
-	NAMESPACE = 'ScrollMagic.Controller',
-	SCROLL_DIRECTION_FORWARD = 'FORWARD',
-	SCROLL_DIRECTION_REVERSE = 'REVERSE',
-	SCROLL_DIRECTION_PAUSED = 'PAUSED',
-	DEFAULT_OPTIONS = CONTROLLER_OPTIONS.defaults;
+export const SCROLL_DIRECTION = {
+	FORWARD: 'FORWARD',
+	REVERSE: 'REVERSE',
+	PAUSED: 'PAUSED'
+}
 
+const DEFAULT_OPTIONS = {
+	container: window,
+	vertical: true,
+	globalSceneOptions: {},
+	loglevel: 2,
+	refreshInterval: 100
+}
 //Top-Level component which passes information about container and scrolling state to Stages, Scenes, and Actors
-export default class Director extends Component {
-	
+export default class Director extends Component {	
 	constructor(props){
 		super(props);
-		this.state = {
-			options: Util.extend({}, DEFAULT_OPTIONS, props.options)
-		}
+
 		const protoState = {
+			...DEFAULT_OPTIONS,
+			lastUpdate: Date.now(),
 			sceneObjects: [],
 			routineUpdateOnNextCycle: false,
 			scrollPos: 0,
-			scrollDirection: SCROLL_DIRECTION_PAUSED,
+			scrollDirection: SCROLL_DIRECTION.PAUSED,
 			isDocument: true,
 			viewPortSize: 0,
 			enabled: true,
 			updateTimeout: null,
-			refreshTimeout: null,
-			directorContext: {}
+			refreshTimeout: null
 		}
 
-		for (var key in this.state.options) {
-			if (!DEFAULT_OPTIONS.hasOwnProperty(key)) {
-				this.log(2, "WARNING: Unknown option \"" + key + "\"");
-				delete this.state.options[key];
-			}
-		}
+		this.events = new EventEmitter();
+		console.log(this.events)
 
-		this.state.options.container = Get.elements(this.state.options.container)[0];
+		//TODO: SOME KIND OF VALIDATION
+
+		protoState.container = Get.elements(protoState.container)[0];
 		// check ScrollContainer
-		if (!this.state.options.container) {
+		if (!protoState.container) {
 			this.log(1, "ERROR creating object " + NAMESPACE + ": No valid scroll container supplied");
 			throw new Error(NAMESPACE + " init failed."); // cancel
 		}
-		protoState.isDocument = this.state.options.container === window 
-			|| this.state.options.container === document.body 
-			|| !window.document.body.contains(this.state.options.container);
+
+		protoState.isDocument = protoState.container === window 
+			|| protoState.container === document.body 
+			|| !window.document.body.contains(protoState.container);
 		// normalize to window
 		if (protoState.isDocument) {
-			this.state.options.container = window;
+			protoState.container = window;
 		}
-		// update container size immediately
-		protoState.viewPortSize = this.viewportSize;
-		this.log(1, protoState.viewPortSize);
 
-		const refreshInterval = parseInt(this.state.options.refreshInterval, 10);
-		this.state.options.refreshInterval = Type.Number(refreshInterval) 
+		const refreshInterval = parseInt(protoState.refreshInterval, 10);
+		protoState.refreshInterval = Type.Number(refreshInterval) 
 			? refreshInterval 
 			: DEFAULT_OPTIONS.refreshInterval;
 
-		this.state = {...this.state, ...protoState};
+		this.state = protoState;
 	}
-
-	render(){
-		const {disabled, children} = this.props;
-		const {directorContext} = this.state;
-
-		const stages = React.Children.toArray(children).filter(child=> child.type === Stage);
-		const scenes = React.Children.toArray(children).filter(child=> child.type === Scene);
-		const actors = React.Children.toArray(children).filter(child=> child.type === Actor);
-		const assistants = React.Children.toArray(children).filter(child=> child.type === Assistant);
-
-		return <DirectorContext.Provider value={directorContext}>
-			{children}
-		</DirectorContext.Provider>
-	}
-
-	componentDidMount() {
-		this.scheduleRefresh();
-		//intitialize state and context
-		this.setState(this.routineStateChanges());
-
-		// set event handlers
-		this.state.options.container.addEventListener("resize", this.onChange.bind(this));
-		this.state.options.container.addEventListener("scroll", this.onChange.bind(this));
-
-
-		const {children} = this.props;
-		const stages = React.Children.toArray(children).filter(child=> child.type === Stage);
-		this.log(1, `${stages.length} stages in director`)
-		const scenes = React.Children.toArray(children).filter(child=> child.type === Scene);
-		this.log(1, `${scenes.length} scenes in director`)
-		const actors = React.Children.toArray(children).filter(child=> child.type === Actor);
-		this.log(1, `${actors.length} actors in director`)
-	}
-
-	componentDidUpdate(){
-		//TODO: REACT, if disabled changes, make sure to force updates
-	}
-
-	componentWillUnmount() {
-		window.clearTimeout(this.state.refreshTimeout);
-		this.state.options.container.removeEventListener("resize", this.onChange.bind(this));
-		this.state.options.container.removeEventListener("scroll", this.onChange.bind(this));
-		Util.cAF(this.state.updateTimeout);
-		this.log(3, "unmount " + NAMESPACE );
-	}
-
-	get isDisabled() {
-		const {disabled} = this.props;
-		return disabled;
-	}
-
-	sortScenesReact(ScenesArray) {
-		if (ScenesArray.length <= 1) {
-			return ScenesArray;
-		} else {
-			var scenes = ScenesArray.slice(0);
-			scenes.sort(function(a, b) {
-				return a.props.offset > b.props.offset ? 1 : -1;
-			});
-			return scenes;
-		}
-	};
 
 	log(loglevel, output) {
-		if (this.state.options.loglevel >= loglevel) {
+		if (this.state.loglevel >= loglevel) {
 			Array.prototype.splice.call(arguments, 1, 0, "(" + NAMESPACE + ") ->");
 			Util.log.apply(window, arguments);
 		}
@@ -150,62 +80,65 @@ export default class Director extends Component {
 	loglevel(newLoglevel) {
 		// (BUILD) - REMOVE IN MINIFY - START
 		if (!arguments.length) { // get
-			return this.state.options.loglevel;
-		} else if (this.state.options.loglevel !== newLoglevel) { // set
+			return this.state.loglevel;
+		} else if (this.state.loglevel !== newLoglevel) { // set
 			this.setState({
-				...this.state.options,
+				...this.state,
 				loglevel: newLoglevel
 			})
 		}
 		// (BUILD) - REMOVE IN MINIFY - END
 		return this;
 	};
-	
-	get scrollPos() {
-		const getScrollPos = this.props.getScrollPos && Type.Function(this.props.getScrollPos)
-			? this.props.getScrollPos 
-			: ()=>{
-				return this.state.options.vertical ? Get.scrollTop(this.state.options.container) : Get.scrollLeft(this.state.options.container);
-			}
-		return getScrollPos();
-	};
 
-	/**
-		* Returns the current viewport Size (width vor horizontal, height for vertical)
-		* @private
-	*/
-	get viewportSize() {
-		return this.state.options.vertical ? Get.height(this.state.options.container) : Get.width(this.state.options.container);
-	};
 
-	onChange(e) {
-		this.log(3, "event fired causing an update:", e.type);
-		if (e.type === "resize") {
-			// resize
-			const viewPortSize = this.viewportSize;
-			const scrollDirection = SCROLL_DIRECTION_PAUSED;
-			this.setState({
-				viewPortSize,
-				scrollDirection
-			})
-		}
-		// schedule update
-		//TODO: REACT
-		if (this.state.routineUpdateOnNextCycle !== true) {
-			const routineUpdateOnNextCycle = true;
-			this.setState({
-				routineUpdateOnNextCycle
-			})
-			this.debounceUpdate();
-		}
-	};
+	componentDidMount() {
+		const {children} = this.props;
+
+		// set event handlers
+		this.state.container.addEventListener("resize", this.onChange.bind(this));
+		this.state.container.addEventListener("scroll", this.onChange.bind(this));
+
+		this.scheduleRefresh();
+		// update container size immediately
+		const viewPortSize = this.viewportSize;
+		this.log(1, viewPortSize);
+
+		//initialize viewport size then initialize everything
+		this.setState({viewPortSize}, ()=>{
+			//intitialize state and context
+			this.setState(this.routineStateChanges());
+		})
+
+		const stages = React.Children.toArray(children).filter(child=> child.type === Stage);
+		this.log(1, `${stages.length} stages in director`)
+		const scenes = React.Children.toArray(children).filter(child=> child.type === Scene);
+		this.log(1, `${scenes.length} scenes in director`)
+		const actors = React.Children.toArray(children).filter(child=> child.type === Actor);
+		this.log(1, `${actors.length} actors in director`)
+	}
+
+	componentWillUnmount() {
+		this.state.container.removeEventListener("resize", this.onChange.bind(this));
+		this.state.container.removeEventListener("scroll", this.onChange.bind(this));
+
+		window.clearTimeout(this.state.refreshTimeout);
+		Util.cAF(this.state.updateTimeout);
+		this.log(3, "unmount " + NAMESPACE );
+	}
 
 	scheduleRefresh() {
-		if (this.state.options.refreshInterval > 0) {
-			const refreshTimeout = window.setTimeout(this.refresh.bind(this), this.state.options.refreshInterval);
+		if (this.state.refreshInterval > 0) {
+			const refreshTimeout = window.setTimeout(this.refresh.bind(this), this.state.refreshInterval);
 			this.setState({refreshTimeout});
 		}
 	}
+
+	get isDisabled() {
+		const {disabled} = this.props;
+		return disabled;
+	}
+
 
 	refresh() {
 		//this.log(1, "Refreshing")
@@ -221,13 +154,9 @@ export default class Director extends Component {
 					resizeEvent = window.document.createEvent("Event");
 					resizeEvent.initEvent("resize", false, false);
 				}
-				this.state.options.container.dispatchEvent(resizeEvent);
+				this.state.container.dispatchEvent(resizeEvent);
 			}
 		}
-		// TODO: make sure this is handled in STAGEs or SCENEs
-		this.state.sceneObjects.forEach(function (scene, index) {// refresh all scenes
-			scene.refresh();
-		});
 		this.scheduleRefresh();
 	}
 
@@ -246,24 +175,14 @@ export default class Director extends Component {
 		let scrollDirection;
 		if (deltaScroll !== 0) { // scroll position changed?
 			scrollDirection = (deltaScroll > 0) 
-				? SCROLL_DIRECTION_FORWARD 
-				: SCROLL_DIRECTION_REVERSE;
-		}
-
-		const directorContext = {
-			lastUpdate: Date.now(),
-			size: this.state.viewPortSize, // contains height or width (in regard to orientation);
-			vertical: this.state.options.vertical,
-			scrollPos,
-			scrollDirection,
-			//container: this.state.options.container,
-			isDocument: this.state.isDocument
+				? SCROLL_DIRECTION.FORWARD 
+				: SCROLL_DIRECTION.REVERSE;
 		}
 
 		return {
 			scrollPos,
 			scrollDirection,
-			directorContext
+			lastUpdate: Date.now()
 		}
 	}
 
@@ -278,11 +197,105 @@ export default class Director extends Component {
 			this.setState({
 				...stateChanges,
 				routineUpdateOnNextCycle,
-			})
+			}, this.emitUpdate.bind(this))
 		}
 	}
 
-	
+	emitUpdate() {
+		this.events.emit('update', this.directorContext);
+	}
+
+	get scrollPos() {
+		const getScrollPos = this.props.getScrollPos && Type.Function(this.props.getScrollPos)
+			? this.props.getScrollPos 
+			: ()=>{
+				return this.state.vertical ? Get.scrollTop(this.state.container) : Get.scrollLeft(this.state.container);
+			}
+		return getScrollPos();
+	};
+
+	/**
+		* Returns the current viewport Size (width vor horizontal, height for vertical)
+		* @private
+	*/
+	get viewportSize() {
+		return this.state.vertical ? Get.height(this.state.container) : Get.width(this.state.container);
+	};
+
+	onChange(e) {
+		this.log(3, "event fired causing an update:", e.type);
+		if (e.type === "resize") {
+			// resize
+			const viewPortSize = this.viewportSize;
+			const scrollDirection = SCROLL_DIRECTION.PAUSED;
+			this.setState({
+				viewPortSize,
+				scrollDirection
+			}, ()=>{
+				this.emitResize()
+			})
+		}
+		// schedule update
+		//TODO: REACT
+		if (this.state.routineUpdateOnNextCycle !== true) {
+			const routineUpdateOnNextCycle = true;
+			this.setState({
+				routineUpdateOnNextCycle
+			})
+			this.debounceUpdate();
+		}
+	};
+
+	emitResize() {
+		this.events.emit('resize', this.state);
+	}
+
+	sortScenes(sceneComps) {
+		if (sceneComps.length <= 1) {
+			return sceneComps;
+		} else {
+			var scenes = sceneComps.slice(0);
+			scenes.sort(function(a, b) {
+				return a.props.offset > b.props.offset ? 1 : -1;
+			});
+			return scenes;
+		}
+	};
+
+	get directorContext() {
+		const contextBody = {
+			lastUpdate: this.state.lastUpdate,
+			size: this.state.viewPortSize, // contains height or width (in regard to orientation);
+			vertical: this.state.vertical,
+			scrollPos: this.state.scrollPos,
+			scrollDirection: this.state.scrollDirection,
+			container: this.state.container,
+			isDocument: this.state.isDocument,
+			events: this.events
+		}
+		const toString = ()=>{
+			const safeCopy = {...contextBody};
+			delete safeCopy['container'];
+			return JSON.stringify(safeCopy, null, 4);
+		}
+		return {
+			...contextBody,
+			toString
+		};
+	}
+
+	render(){
+		const {disabled, children} = this.props;
+
+		const stages = React.Children.toArray(children).filter(child=> child.type === Stage);
+		const scenes = React.Children.toArray(children).filter(child=> child.type === Scene);
+		const actors = React.Children.toArray(children).filter(child=> child.type === Actor);
+		const assistants = React.Children.toArray(children).filter(child=> child.type === Assistant);
+
+		return <DirectorContext.Provider value={this.directorContext}>
+			{children}
+		</DirectorContext.Provider>
+	}
 
 	//REFACTOR BELOW
 	//REFACTOR BELOW
@@ -317,6 +330,9 @@ export default class Director extends Component {
 	//REFACTOR BELOW
 	//REFACTOR BELOW
 	//REFACTOR BELOW
+
+
+
 
 	/**
 	* Default function to set scroll pos - overwriteable using `Controller.scrollTo(newFunction)`
@@ -324,13 +340,13 @@ export default class Director extends Component {
 	* @private
 	*/
 	setScrollPos(pos) {
-		if (this.state.options.vertical) {
+		if (this.state.vertical) {
 			if (this.state.isDocument) {
 				window.scrollTo(Get.scrollLeft(), pos);
 			} else {
 				//TODO: REACT
 				//TODO: BROKEN
-				this.state.options.container.scrollTop = pos;
+				this.state.container.scrollTop = pos;
 			}
 		} else {
 			if (this.state.isDocument) {
@@ -338,7 +354,7 @@ export default class Director extends Component {
 			} else {
 				//TODO: REACT
 				//TODO: BROKEN
-				this.state.options.container.scrollLeft = pos;
+				this.state.container.scrollLeft = pos;
 			}
 		}
 	};
@@ -410,7 +426,7 @@ export default class Director extends Component {
 	//TODO: BROKEN, scene function may not be working
 	scrollTo(scrollTarget, additionalParameter) {
 		if (Type.Number(scrollTarget)) { // excecute
-			this.setScrollPos.call(this.state.options.container, scrollTarget, additionalParameter);
+			this.setScrollPos.call(this.state.container, scrollTarget, additionalParameter);
 		} else if (scrollTarget instanceof Scene) { // scroll to scene
 			if (scrollTarget.controller() === this) { // check if the controller is associated with this scene
 				this.scrollTo(scrollTarget.scrollOffset(), additionalParameter);
@@ -429,7 +445,7 @@ export default class Director extends Component {
 				}
 
 				var
-					param = this.state.options.vertical ? "top" : "left", // which param is of interest ?
+					param = this.state.vertical ? "top" : "left", // which param is of interest ?
 					containerOffset = Get.offset(this._options.container), // container position is needed because element offset is returned in relation to document, not in relation to container.
 					elementOffset = Get.offset(elem);
 
@@ -444,4 +460,16 @@ export default class Director extends Component {
 		}
 		return this;
 	};
+}
+Director.defaultProps = {
+	container: window,
+	vertical: true,
+	globalSceneOptions: {},
+	loglevel: 2,
+	refreshInterval: 100
+}
+
+Director.propTypes = {
+	vertical: PropTypes.bool,
+	refreshInterval: PropTypes.number
 }

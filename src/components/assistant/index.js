@@ -3,7 +3,7 @@ import React, {Component} from 'react';
 import {DirectorContext} from '../director/context';
 import {StageContext} from '../stage/context';
 
-export default class Stage extends Component {
+export default class Assistant extends Component {
 	render(){
 		const {location} = this.props;
 		let loc = {top: 20, left: 20};
@@ -36,7 +36,7 @@ export default class Stage extends Component {
 						>
 							<h4 style={{padding: 0, margin: 0}}>Director</h4>
 							{
-								director && Object.keys(director).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
+								director && Object.keys(JSON.parse(director.toString())).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
 	{key}: {JSON.stringify(director[key])}
 								</p>))
 							}
