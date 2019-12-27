@@ -177,6 +177,8 @@ export default class Director extends Component {
 			scrollDirection = (deltaScroll > 0) 
 				? SCROLL_DIRECTION.FORWARD 
 				: SCROLL_DIRECTION.REVERSE;
+		} else {
+			scrollDirection = SCROLL_DIRECTION.PAUSED;
 		}
 
 		return {
@@ -265,6 +267,7 @@ export default class Director extends Component {
 	get directorContext() {
 		const contextBody = {
 			lastUpdate: this.state.lastUpdate,
+			disabled: this.props.isDisabled || false,
 			size: this.state.viewPortSize, // contains height or width (in regard to orientation);
 			vertical: this.state.vertical,
 			scrollPos: this.state.scrollPos,
@@ -276,6 +279,7 @@ export default class Director extends Component {
 		const toString = ()=>{
 			const safeCopy = {...contextBody};
 			delete safeCopy['container'];
+			delete safeCopy['events'];
 			return JSON.stringify(safeCopy, null, 4);
 		}
 		return {

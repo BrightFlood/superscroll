@@ -5,14 +5,16 @@ import {StageContext} from '../stage/context';
 
 export default class Indicator extends Component {
 	render(){
-		const {location} = this.props;
-		let loc = {right: 20};
+		const {location, offset} = this.props;
+		let off = offset || 0;
+		off += 20;
+		let loc = {right: off};
 		switch (location) {
 			case 'left':
-				loc = {left: 20};
+				loc = {left: off};
 				break;
 			case 'right':
-				loc = {right: 20};
+				loc = {right: off};
 				break;
 			default:
 				break;
@@ -27,6 +29,7 @@ export default class Indicator extends Component {
 								position: 'absolute',
 								padding: 0,
 								margin: 0,
+								zIndex: 20,
 								width: '100vw',
 								height: '100vh',
 							}}
@@ -36,28 +39,44 @@ export default class Indicator extends Component {
 								position: 'fixed',
 								padding: 0,
 								margin: 0,
+								color: 'blue'
+							}}>{this.props.name}</span>
+							<span style={{
+								...loc,
+								position: 'fixed',
+								padding: 0,
+								margin: 0,
 								borderTop: "1px solid blue",
 								top: director.size * stage.triggerHook,
 								color: 'blue'
-							}}>hook</span>
+							}}>{director.scrollDirection} {stage.state}</span>
 							<span style={{
+								...loc,
+								position: 'fixed',
+								padding: 0,
+								margin: 0,
+								borderTop: "1px solid blue",
+								top: director.size * stage.triggerHook,
+								color: 'blue'
+							}}>{director.scrollDirection} {stage.state}</span>
+							{stage.scenes && stage.scenes(this.props.name) && <span style={{
 								...loc,
 								position: 'fixed',
 								padding: 0,
 								margin: 0,
 								borderTop: "1px solid green",
-								top: director.size * stage.triggerHook + stage.scrollOffset.start - director.scrollPos,
+								top: director.size * stage.triggerHook + stage.scenes(this.props.name).start - director.scrollPos,
 								color: 'green'
-							}}>start</span>
-							<span style={{
+							}}>START</span>}
+							{stage.scenes && stage.scenes(this.props.name) && <span style={{
 								...loc,
 								position: 'fixed',
 								padding: 0,
 								margin: 0,
 								borderTop: "1px solid red",
-								top: director.size * stage.triggerHook + stage.scrollOffset.end - director.scrollPos,
+								top: director.size * stage.triggerHook + stage.scenes(this.props.name).end - director.scrollPos,
 								color: 'red'
-							}}>end</span>
+							}}>END</span>}
 						</div>
 					)}			
 				</StageContext.Consumer>

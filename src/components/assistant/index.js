@@ -29,21 +29,21 @@ export default class Assistant extends Component {
 							style={{
 								...loc,
 								position: 'fixed',
+								zIndex: 10,
 								width: 200,
-								height: 200,
 								backgroundColor: 'lightgray'
 							}}
 						>
 							<h4 style={{padding: 0, margin: 0}}>Director</h4>
 							{
 								director && Object.keys(JSON.parse(director.toString())).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
-	{key}: {JSON.stringify(director[key])}
+	{key}: {JSON.stringify(director[key], null, 4)}
 								</p>))
 							}
-							<h4>Stage</h4>
+							<h4 style={{padding: 0, marginBottom: 0}}>Stage</h4>
 							{
-								stage && Object.keys(stage).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
-	{key}: {JSON.stringify(stage[key])}
+								stage && Object.keys(JSON.parse(stage.toString())).map((key)=>(<p style={{padding: 0, margin: 0}} key={key}>
+	{key}: {JSON.stringify(stage[key], null, 4)}
 								</p>))
 							}
 						</div>

@@ -41,19 +41,31 @@ class RefTest extends Component {
 		}
 	}
 
+	//TODO each scene should get its own settings but they should override defaults in the stage
 	render() {
 		console.log(this.state.ref);
 		return <Director>
 			<Assistant location='topleft'/>
-			<Stage triggerRef={this.state.ref} duration={{percent: 50}}>
+			<Stage triggerRef={this.state.ref}>
 				<Assistant location='topright'/>
-				<Indicator />
-				<div style={{height: 1000, backgroundColor: 'pink'}}>
-				</div>
+				<Indicator name="test1" location='right' offset={0}/>
+				<Indicator name="test2" location='right' offset={150}/>
+				<Indicator name="test3" location='right' offset={300}/>
+				<Scene name="test1" triggerRef={this.state.ref} duration={{percent: 25}} />
+				<Scene name="test2" triggerRef={this.state.ref} duration={{percent: 50}} />
+				<Scene name="test3" duration={{percent: 50}} />
 				<StageContext.Consumer>
 					{
 						stage => {
-							return <div style={{height: 1000, backgroundColor: 'lightblue', opacity: stage.progress}} ref={this.innerRef}>
+							return <div style={{height: 1000, backgroundColor: 'pink', opacity: 1 - stage.scenes('test3').progress}}>
+							</div>
+						}
+					}
+				</StageContext.Consumer>
+				<StageContext.Consumer>
+					{
+						stage => {
+							return <div style={{height: 1000, backgroundColor: 'lightblue', opacity: stage.scenes('test2').progress}} ref={this.innerRef}>
 							</div>
 						}
 					}
